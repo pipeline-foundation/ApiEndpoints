@@ -8,14 +8,13 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       is_push_to_default_branch: ${{ steps.conditionals_handler.outputs.is_push_to_default_branch }}
-      is_default_branch: ${{ steps.conditionals_handler.outputs.is_default_branch }}
     steps:
       - name: Data gatherer
         id: data_gatherer
         shell: pwsh
         run: |
           # Get default branch
-          $repo = 'ardalis/ApiEndpoints'
+          $repo = ${{ github.repository }}
           $defaultBranch = Invoke-RestMethod -Method GET -Uri https://api.github.com/repos/$repo | Select-Object -ExpandProperty default_branch
           Write-Output "::set-output name=default_branch::$(echo $defaultBranch)"
 
@@ -65,7 +64,7 @@ jobs:
         id: run_unit_tests
         shell: pwsh
         run: |
-          dotnet test
+          dotnet test .\Ardalis.ApiEndpoints.sln
 
   cd:
     if: needs.ci.outputs.is_push_to_default_branch == 'true'
@@ -100,21 +99,19 @@ jobs:
         id: create_and_publish_codeanalyzer_nupkg
         uses: rohith/publish-nuget@v2
         with:
-          PROJECT_FILE_PATH: src/Ardalis.ApiEndpoints.CodeAnalyzers/Ardalis.ApiEndpoints.CodeAnalyzers.csproj # Relative to repository root
-          # VERSION_FILE_PATH: Directory.Build.props # Filepath with version info, relative to repository root. Defaults to project file
-          VERSION_REGEX: <Version>(.*)<\/Version> # Regex pattern to extract version info in a capturing group
-          TAG_COMMIT: true # Flag to enable / disable git tagging
-          TAG_FORMAT: Analyzer_v* # Format of the git tag, [*] gets replaced with version
-          NUGET_KEY: ${{secrets.NUGET_API_KEY}} # nuget.org API key
+          PROJECT_FILE_PATH: src/Ardalis.ApiEndpoints.CodeAnalyzers/Ardalis.ApiEndpoints.CodeAnalyzers.csproj
+          VERSION_REGEX: <Version>(.*)<\/Version>
+          TAG_COMMIT: true
+          TAG_FORMAT: Analyzer_v*
+          NUGET_KEY: ${{secrets.NUGET_API_KEY}}
 
       - if: steps.filter_changes.outputs.apiendpoints == 'true'
         name: Create and publish ApiEndpoints package to NuGet
         id: create_and_publish_apiendpoints_nupkg
         uses: rohith/publish-nuget@v2
         with:
-          PROJECT_FILE_PATH: src/Ardalis.ApiEndpoints/Ardalis.ApiEndpoints.csproj # Relative to repository root
-          # VERSION_FILE_PATH: Directory.Build.props # Filepath with version info, relative to repository root. Defaults to project file
-          VERSION_REGEX: <Version>(.*)<\/Version> # Regex pattern to extract version info in a capturing group
-          TAG_COMMIT: true # Flag to enable / disable git tagging
-          TAG_FORMAT: v* # Format of the git tag, [*] gets replaced with version
-          NUGET_KEY: ${{secrets.NUGET_API_KEY}} # nuget.org API key
+          PROJECT_FILE_PATH: src/Ardalis.ApiEndpoints/Ardalis.ApiEndpoints.csproj
+          VERSION_REGEX: <Version>(.*)<\/Version>
+          TAG_COMMIT: true
+          TAG_FORMAT: v*
+          NUGET_KEY: ${{secrets.NUGET_API_KEY}}
